@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from crowler.ai.ai_client_factory import get_ai_client
 
-from crowler.db.html_db import clear_html_urls, summary_html_urls
+from crowler.db.url_db import clear_urls, summary_urls
 from crowler.db.process_file_db import (
     clear_processing_files,
     summary_processing_files,
@@ -18,14 +18,14 @@ from crowler.cli.code_app import code_app
 from crowler.cli.process_app import process_app
 from crowler.cli.prompt_app import prompt_app
 from crowler.cli.file_app import file_app
-from crowler.cli.html_app import html_app
+from crowler.cli.url_app import url_app
 
 app = typer.Typer()
 app.add_typer(code_app)
 app.add_typer(file_app)
 app.add_typer(process_app)
 app.add_typer(prompt_app)
-app.add_typer(html_app)
+app.add_typer(url_app)
 
 
 # ───────────────────────── helpers ────────────────────────── #
@@ -60,7 +60,7 @@ def summary_all() -> str:
             summary_prompts(),
             summary_shared_files(),
             summary_processing_files(),
-            summary_html_urls(),
+            summary_urls(),
         ]
     )
 
@@ -88,7 +88,7 @@ def clear_all():
     clear_prompts()
     clear_shared_files()
     clear_processing_files()
-    clear_html_urls()
+    clear_urls()
 
 
 @app.command("ask")

@@ -9,7 +9,7 @@ from crowler.db.prompt_db import (
 
 
 prompt_app = create_crud_app(
-    name="process",
+    name="prompt",
     help_text="Manage your prompt history",
     add_fn=append_prompt,
     remove_fn=remove_prompt,

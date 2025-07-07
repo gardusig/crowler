@@ -23,8 +23,6 @@ def create_crud_app(
         try:
             for item in get_all_files(arg):
                 add_fn(item)
-            else:
-                add_fn(arg)
         except Exception as e:
             typer.secho(f"❌ Failed to add {add_arg_name}: {e}", fg="red", err=True)
             raise
@@ -33,7 +31,8 @@ def create_crud_app(
     def remove_command(arg: str = typer.Argument(..., help=remove_arg_help)):
         """Remove an item."""
         try:
-            remove_fn(arg)
+            for item in get_all_files(arg):
+                remove_fn(item)
         except Exception as e:
             typer.secho(
                 f"❌ Failed to remove {remove_arg_name}: {e}", fg="red", err=True

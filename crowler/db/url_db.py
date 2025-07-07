@@ -5,7 +5,7 @@ from crowler.db.history_db import HistoryDB
 from crowler.util.session_util import create_session_file
 
 
-class HtmlHistoryStore:
+class UrlHistoryStore:
     def __init__(self, name: str, pretty_label: str):
         self.name = name
         self._db: HistoryDB[list[str]] = HistoryDB(
@@ -61,39 +61,39 @@ class HtmlHistoryStore:
         return set(self._db.latest())
 
 
-# ───── instantiate the HTML store ────────────────────────────
+# ───── instantiate the store ────────────────────────────
 
-_html_store = HtmlHistoryStore("html_history", "🌐 HTML URLs")
-
-
-# ───── public API for HTML URLs ───────────────────────────────
+_store = UrlHistoryStore("history", "🌐 URLs")
 
 
-def clear_html_urls() -> None:
-    _html_store.clear()
-    typer.secho("✅ HTML URLs cleared.", fg="green")
+# ───── public API for URLs ───────────────────────────────
 
 
-def append_html_url(url: str) -> None:
-    _html_store.append(url)
-    typer.secho(f"✅ HTML URL appended: {url}", fg="green")
+def clear_urls() -> None:
+    _store.clear()
+    typer.secho("✅ URLs cleared.", fg="green")
 
 
-def remove_html_url(url: str) -> None:
-    _html_store.remove(url)
-    typer.secho(f"✅ HTML URL removed: {url}", fg="green")
+def append_url(url: str) -> None:
+    _store.append(url)
+    typer.secho(f"✅ URL appended: {url}", fg="green")
 
 
-def undo_html_urls() -> None:
-    _html_store.undo()
-    typer.secho("✅ Undo completed for HTML URLs.", fg="green")
+def remove_url(url: str) -> None:
+    _store.remove(url)
+    typer.secho(f"✅ URL removed: {url}", fg="green")
 
 
-def summary_html_urls() -> str:
-    summary = _html_store.summary()
+def undo_urls() -> None:
+    _store.undo()
+    typer.secho("✅ Undo completed for URLs.", fg="green")
+
+
+def summary_urls() -> str:
+    summary = _store.summary()
     return summary
 
 
-def get_html_urls() -> set[str]:
-    urls = _html_store.latest_set()
+def get_urls() -> set[str]:
+    urls = _store.latest_set()
     return urls
