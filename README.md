@@ -1,7 +1,6 @@
-
 # crowler
 
-Welcome to **crowler** – command-line toolkit for managing prompts, files, and AI-powered workflows! crowler helps you organize prompt histories, file queues, and code-gen tasks, so you can focus on what matters: getting things done (with a sprinkle of fun).
+Command-line toolkit for managing prompts, files, and AI-powered workflows!
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/gardusig/crowler-cli/main/media/itachi.png" alt="eat" height="200" />

@@ -19,4 +19,5 @@ file_app = create_crud_app(
     add_arg_help="Path to append",
     remove_arg_name="path",
     remove_arg_help="Path to remove",
+    should_handle_filepaths=True,
 )

@@ -14,6 +14,7 @@ def create_crud_app(
     add_arg_help="Item to add",
     remove_arg_name="item",
     remove_arg_help="Item to remove",
+    should_handle_filepaths=False,
 ):
     app = typer.Typer(name=name, help=help_text)
 
@@ -21,8 +22,11 @@ def create_crud_app(
     def add_command(arg: str = typer.Argument(..., help=add_arg_help)):
         """Add an item."""
         try:
-            for item in get_all_files(arg):
-                add_fn(item)
+            if should_handle_filepaths:
+                for item in get_all_files(arg):
+                    add_fn(item)
+            else:
+                add_fn(arg)
         except Exception as e:
             typer.secho(f"❌ Failed to add {add_arg_name}: {e}", fg="red", err=True)
             raise
@@ -31,8 +35,11 @@ def create_crud_app(
     def remove_command(arg: str = typer.Argument(..., help=remove_arg_help)):
         """Remove an item."""
         try:
-            for item in get_all_files(arg):
-                remove_fn(item)
+            if should_handle_filepaths:
+                for item in get_all_files(arg):
+                    remove_fn(item)
+            else:
+                add_fn(arg)
         except Exception as e:
             typer.secho(
                 f"❌ Failed to remove {remove_arg_name}: {e}", fg="red", err=True

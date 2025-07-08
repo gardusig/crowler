@@ -3,6 +3,30 @@ from typing import Any
 import requests
 from bs4 import BeautifulSoup, Tag
 
+LINK_SKIP_PATTERNS = [
+    "javascript:",
+    "mailto:",
+    "tel:",
+    "#",
+    "cookie",
+    "privacy",
+    "terms",
+    "login",
+    "signup",
+]
+
+NON_CONTENT_ELEMENTS = [
+    "script",
+    "style",
+    "nav",
+    "header",
+    "footer",
+    "aside",
+    "noscript",
+    "iframe",
+    "form",
+]
+
 
 @dataclass
 class HtmlData:
@@ -28,21 +52,33 @@ def extract_html_data(url: str) -> HtmlData:
     meta: dict[str, Any] = {}
     for tag in soup.find_all("meta"):
         if isinstance(tag, Tag):
-            if tag.get("name") and tag.get("content"):
-                meta[tag["name"]] = tag["content"]
-            elif tag.get("property") and tag.get("content"):
-                meta[tag["property"]] = tag["content"]
+            name = tag.get("name")
+            property_attr = tag.get("property")
+            content = tag.get("content")
+            if name and content:
+                key = name if isinstance(name, str) else " ".join(name)
+                meta[key] = content
+            elif property_attr and content:
+                key = (
+                    property_attr
+                    if isinstance(property_attr, str)
+                    else " ".join(property_attr)
+                )
+                meta[key] = content
 
     links = []
     for el in soup.find_all("a"):
         if isinstance(el, Tag):
             href = el.get("href")
-            if href:
-                links.append(href)
+            if href and isinstance(href, str):
+                if not any(skip in href.lower() for skip in LINK_SKIP_PATTERNS):
+                    links.append(href)
 
-    for script in soup(["script", "style"]):
-        script.decompose()
+    content_soup = BeautifulSoup(str(soup), "html.parser")
 
-    text = soup.get_text(separator="\n", strip=True)
+    for element in content_soup(NON_CONTENT_ELEMENTS):
+        element.decompose()
+
+    text = content_soup.get_text(separator="\n", strip=True)
 
     return HtmlData(url=url, title=title, meta=meta, links=links, text=text)

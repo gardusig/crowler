@@ -1,7 +1,7 @@
+from crowler.ai.ai_client_config import AIConfig
 import pytest
 from unittest.mock import patch, MagicMock
 
-# Patch all external dependencies at the module level
 with (
     patch("crowler.ai.ai_client.get_shared_files", return_value=[]),
     patch("crowler.ai.ai_client.get_latest_prompts", return_value=[]),
@@ -12,9 +12,11 @@ with (
     from crowler.ai.ai_client import AIClient
 
 
-# Dummy config and instruction for tests
-class DummyConfig:
-    pass
+class DummyConfig(AIConfig):
+    model = "dummy-model"
+    temperature = 0.7
+    top_p = 1.0
+    max_tokens = 1000
 
 
 class DummyInstruction:
@@ -25,6 +27,18 @@ class DummyAIClient(AIClient):
     def get_response(self, messages):
         return "dummy-response"
 
+    def _get_shared_files(self):
+        return []
+
+    def _get_latest_prompts(self):
+        return []
+
+    def _stringify_file_contents(self, files, *args, **kwargs):
+        return []
+
+    def _get_instruction_strings(self, instructions):
+        return []
+
 
 @pytest.fixture
 def ai_client():
@@ -34,13 +48,9 @@ def ai_client():
 @pytest.mark.parametrize(
     "instructions, prompt_files, final_prompt, shared_files, prompt_db, expected_roles",
     [
-        # Only instructions
         ([[MagicMock(spec=DummyInstruction)]], None, None, [], [], ["system"]),
-        # Only prompt_files
         (None, ["file1.txt"], None, [], [], ["user"]),
-        # Only final_prompt
         (None, None, "final prompt", [], [], ["user"]),
-        # All present, with shared_files and prompt_db
         (
             [MagicMock(spec=DummyInstruction)],
             ["file1.txt", "file2.txt"],
@@ -49,7 +59,6 @@ def ai_client():
             ["prompt1", "prompt2"],
             ["system", "user", "user", "user", "user"],
         ),
-        # Nothing present
         (None, None, None, [], [], []),
     ],
 )

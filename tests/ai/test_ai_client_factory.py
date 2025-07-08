@@ -1,3 +1,4 @@
+from crowler.ai.ai_client_config import AIConfig
 import pytest
 import types
 
@@ -6,13 +7,16 @@ import crowler.ai.ai_client_factory as ai_client_factory
 
 @pytest.fixture(autouse=True)
 def patch_ai_clients(monkeypatch):
-    # Patch OpenAIClient and ClaudeClient with dummy classes
-    dummy_openai = lambda config=None: types.SimpleNamespace(
-        name="openai", config=config
-    )
-    dummy_claude = lambda config=None: types.SimpleNamespace(
-        name="claude", config=config
-    )
+    def dummy_openai(config=None):
+        return types.SimpleNamespace(
+            name="openai", config=config
+        )
+
+    def dummy_claude(config=None):
+        return types.SimpleNamespace(
+            name="claude", config=config
+        )
+
     monkeypatch.setitem(ai_client_factory.AI_CLIENTS, "openai", dummy_openai)
     monkeypatch.setitem(ai_client_factory.AI_CLIENTS, "claude", dummy_claude)
     yield
@@ -29,7 +33,7 @@ def patch_ai_clients(monkeypatch):
 )
 def test_get_ai_client_valid(monkeypatch, env_value, expected_name):
     monkeypatch.setenv("AI_CLIENT", env_value)
-    config = object()
+    config = AIConfig()
     client = ai_client_factory.get_ai_client(config)
     assert client.name == expected_name
     assert client.config is config
