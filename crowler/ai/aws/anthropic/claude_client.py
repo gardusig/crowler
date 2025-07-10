@@ -23,12 +23,25 @@ class ClaudeClient(BedrockClient):
         messages: list[dict[str, Any]],
     ) -> dict[str, Any]:
         self.config = cast(ClaudeClientConfig, self.config)
+
+        system_content = None
+        user_assistant_messages = []
+
+        for msg in messages:
+            if msg["role"] == "system":
+                system_content = msg["content"]
+            else:
+                user_assistant_messages.append(msg)
+
         request_body = {
             "anthropic_version": self.config.anthropic_version,
             "max_tokens": self.config.max_tokens,
             "temperature": self.config.temperature,
-            "messages": messages,
+            "messages": user_assistant_messages,
         }
+
+        if system_content:
+            request_body["system"] = system_content
         if self.config.top_p:
             request_body["top_p"] = self.config.top_p
         if self.config.reasoning_max_tokens:
