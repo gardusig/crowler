@@ -55,13 +55,8 @@ Clone and set up your environment:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -e .
-```
-
-For development tools:
-
-```bash
-pip install -e ".[dev]"
+python3 -m pip install -e .
+python3 -m pip install -e ".[dev]"
 ```
 
 ## 🔐 Environment Configuration

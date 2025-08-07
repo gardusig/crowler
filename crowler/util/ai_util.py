@@ -16,6 +16,7 @@ def format_messages(
     final_prompt: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     msgs: list[dict[str, Any]] = []
+
     if instructions:
         instruction_strings = get_instruction_strings(instructions)
         msgs.append(
@@ -24,38 +25,33 @@ def format_messages(
                 "content": "\n".join(instruction_strings),
             }
         )
+
+    user_parts = []
+
     shared_files = get_shared_files()
     if shared_files:
         shared_files_content = stringify_file_contents(
             list(shared_files), "File context"
         )
-        msgs.append(
-            {
-                "role": "user",
-                "content": "\n".join(shared_files_content),
-            }
-        )
-    if prompt_files:
-        prompt_files_content = stringify_file_contents(prompt_files)
-        msgs.append(
-            {
-                "role": "user",
-                "content": "\n".join(prompt_files_content),
-            }
-        )
+        user_parts.append("\n".join(shared_files_content))
+
     prompts = get_latest_prompts()
     if prompts:
-        msgs.append(
-            {
-                "role": "user",
-                "content": "\n".join(prompts),
-            }
-        )
+        user_parts.append("\n".join(prompts))
+
+    if prompt_files:
+        prompt_files_content = stringify_file_contents(prompt_files)
+        user_parts.append("\n".join(prompt_files_content))
+
     if final_prompt:
+        user_parts.append(final_prompt)
+
+    if user_parts:
         msgs.append(
             {
                 "role": "user",
-                "content": final_prompt,
+                "content": "\n\n".join(user_parts),
             }
         )
+
     return msgs

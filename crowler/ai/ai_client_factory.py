@@ -23,7 +23,6 @@ def get_ai_client(config: Optional[AIConfig] = None) -> AIClient:
         raise RuntimeError("⛔️ AI_CLIENT environment variable not set.")
     try:
         client = AI_CLIENTS[client_name](config)
-        print(AI_CLIENTS[client_name](config))
         return client
     except KeyError as exc:
         typer.secho(

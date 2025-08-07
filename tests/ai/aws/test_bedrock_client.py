@@ -59,11 +59,29 @@ def test_init_success(monkeypatch, dummy_config):
     mock_boto3 = MagicMock()
     mock_client = MagicMock()
     mock_boto3.client.return_value = mock_client
+
+    # Mock Config class
+    mock_config_class = MagicMock()
+    mock_config_instance = MagicMock()
+    mock_config_class.return_value = mock_config_instance
+
     monkeypatch.setattr(bedrock_client_mod, "boto3", mock_boto3)
+    monkeypatch.setattr(bedrock_client_mod, "Config", mock_config_class)
+
     client = DummyBedrockClient(config=dummy_config)
     assert hasattr(client, "client")
+
+    # Verify Config was created with correct parameters
+    mock_config_class.assert_called_once()
+    config_kwargs = mock_config_class.call_args[1]
+    assert config_kwargs["region_name"] == "us-east-1"
+    assert config_kwargs["read_timeout"] == 300
+    assert config_kwargs["connect_timeout"] == 30
+    assert config_kwargs["retries"] == {"max_attempts": 3}
+
+    # Verify boto3.client was called with correct parameters
     mock_boto3.client.assert_called_once_with(
-        "bedrock-runtime", region_name="us-east-1"
+        "bedrock-runtime", region_name="us-east-1", config=mock_config_instance
     )
 
 
@@ -101,11 +119,15 @@ def test_get_response_success(
 
     mock_resp["body"].read.return_value = json.dumps(response_body)
     mock_client.invoke_model.return_value = mock_resp
-    monkeypatch.setattr(
-        bedrock_client_mod,
-        "boto3",
-        MagicMock(client=MagicMock(return_value=mock_client)),
-    )
+
+    mock_boto3 = MagicMock()
+    mock_boto3.client.return_value = mock_client
+    monkeypatch.setattr(bedrock_client_mod, "boto3", mock_boto3)
+
+    # Mock Config class
+    mock_config = MagicMock()
+    monkeypatch.setattr(bedrock_client_mod, "Config", mock_config)
+
     # Patch BedrockClientConfig for cast
     monkeypatch.setattr(bedrock_client_mod, "BedrockClientConfig", type(dummy_config))
     # Patch print to builtins.print to silence output
@@ -127,11 +149,15 @@ def test_get_response_boto_error(monkeypatch, dummy_config):
 
     mock_client = MagicMock()
     mock_client.invoke_model.side_effect = DummyBotoCoreError("fail")
-    monkeypatch.setattr(
-        bedrock_client_mod,
-        "boto3",
-        MagicMock(client=MagicMock(return_value=mock_client)),
-    )
+
+    mock_boto3 = MagicMock()
+    mock_boto3.client.return_value = mock_client
+    monkeypatch.setattr(bedrock_client_mod, "boto3", mock_boto3)
+
+    # Mock Config class
+    mock_config = MagicMock()
+    monkeypatch.setattr(bedrock_client_mod, "Config", mock_config)
+
     monkeypatch.setattr(bedrock_client_mod, "BedrockClientConfig", type(dummy_config))
     monkeypatch.setattr("builtins.print", lambda *a, **k: None)
     monkeypatch.setattr(bedrock_client_mod, "BotoCoreError", DummyBotoCoreError)

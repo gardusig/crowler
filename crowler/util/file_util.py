@@ -152,7 +152,6 @@ def find_repo_root() -> Path:
             .decode()
             .strip()
         )
-        typer.secho(f"✅ Found git repo root: {git_root}", fg="green")
         return Path(git_root)
     except Exception as err:
         typer.secho(

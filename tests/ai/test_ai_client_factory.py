@@ -1,21 +1,26 @@
-from crowler.ai.ai_client_config import AIConfig
+from typing import Optional
 import pytest
 import types
 
 import crowler.ai.ai_client_factory as ai_client_factory
 
 
+# Mock implementation of AIConfig for testing
+class MockAIConfig:
+    def __init__(self):
+        self.model = "test-model"
+        self.temperature = 0.7
+        self.top_p = 0.9
+        self.max_tokens = 1024
+
+
 @pytest.fixture(autouse=True)
 def patch_ai_clients(monkeypatch):
     def dummy_openai(config=None):
-        return types.SimpleNamespace(
-            name="openai", config=config
-        )
+        return types.SimpleNamespace(name="openai", config=config)
 
     def dummy_claude(config=None):
-        return types.SimpleNamespace(
-            name="claude", config=config
-        )
+        return types.SimpleNamespace(name="claude", config=config)
 
     monkeypatch.setitem(ai_client_factory.AI_CLIENTS, "openai", dummy_openai)
     monkeypatch.setitem(ai_client_factory.AI_CLIENTS, "claude", dummy_claude)
@@ -33,7 +38,7 @@ def patch_ai_clients(monkeypatch):
 )
 def test_get_ai_client_valid(monkeypatch, env_value, expected_name):
     monkeypatch.setenv("AI_CLIENT", env_value)
-    config = AIConfig()
+    config = MockAIConfig()  # Use mock implementation instead of protocol
     client = ai_client_factory.get_ai_client(config)
     assert client.name == expected_name
     assert client.config is config

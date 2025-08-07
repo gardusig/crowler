@@ -33,6 +33,7 @@ class AIClient(ABC):
                 prompt_files=prompt_files,
                 final_prompt=final_prompt,
             )
+            typer.secho("Sending message to AI client...")
             response = self.get_response(
                 messages=messages,
             )

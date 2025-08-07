@@ -1,20 +1,13 @@
-from pathlib import Path
-
+from typing import OrderedDict
 from crowler.instruction.instructions.typer_log import TYPER_LOG_INSTRUCTION
 from crowler.instruction.instructions.mypy import MYPY_INSTRUCTION
 from crowler.instruction.instructions.readme import README_INSTRUCTION
 from crowler.db.process_file_db import get_processing_files
-from crowler.util.file_util import (
-    find_repo_root,
-    rewrite_files,
-    source_to_test_path,
-)
-from crowler.instruction.instructions.response_format import (
-    RESPONSE_FORMAT_INSTRUCTION,
-)
+from crowler.util.file_util import rewrite_files
+from crowler.instruction.instructions.response_format import RESPONSE_FORMAT_INSTRUCTION
 from crowler.instruction.instructions.unit_test import UNIT_TEST_INSTRUCTION
 from crowler.ai.ai_client_factory import get_ai_client
-from crowler.util.string_util import parse_code_response
+from crowler.util.string_util import TaskType, parse_code_response
 import typer
 
 code_app = typer.Typer(
@@ -24,17 +17,16 @@ code_app = typer.Typer(
 
 
 @code_app.command("unit-test")
-def create_tests(
+def create_unit_tests(
     force: bool = typer.Option(
         False,
         "--force",
         help="Skip prompts and overwrite tests unconditionally.",
     ),
 ):
-    repo_root = find_repo_root()
     for filepath in get_processing_files():
         try:
-            create_test(force, filepath, repo_root)
+            create_unit_test(force, filepath)
         except Exception as e:
             typer.secho(
                 f"❌ Failed to create test for {filepath!r}: {e}",
@@ -43,23 +35,32 @@ def create_tests(
             )
 
 
-def create_test(force: bool, filepath: str, repo_root: Path):
+def create_unit_test(force: bool, filepath: str):
+    print(filepath)
     if filepath.endswith("__init__.py"):
         typer.secho(f"⚠️  Skipping __init__.py file: {filepath}", fg="yellow")
         return
-    src = Path(filepath)
-    dest = source_to_test_path(src, repo_root)
     ai_client = get_ai_client()
     response = ai_client.send_message(
         instructions=[
             RESPONSE_FORMAT_INSTRUCTION,
             UNIT_TEST_INSTRUCTION,
         ],
-        prompt_files=[src, dest],
-        final_prompt=f'Focus only on creating a test for "{filepath}"',
+        prompt_files=[filepath],
+        final_prompt=f'Focus only on creating|fixing test(s) for "{filepath}"',
     )
-    file_map = parse_code_response(response)
-    rewrite_files(files=file_map, force=force)
+    file_map = parse_code_response(
+        response=response,
+        task_type=TaskType.TEST_GENERATION,
+    )
+    for path, content in file_map.items():
+        print(path)
+        if not filepath.endswith(path):
+            continue
+        rewrite_files(
+            files=OrderedDict({filepath: content}),
+            force=force,
+        )
 
 
 @code_app.command("readme")

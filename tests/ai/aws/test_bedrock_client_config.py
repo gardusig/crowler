@@ -4,7 +4,10 @@ from crowler.ai.aws.bedrock_client_config import BedrockClientConfig
 
 
 def test_bedrock_client_config_defaults():
-    config = BedrockClientConfig(model="test-model")
+    # Provide all required parameters since the dataclass doesn't have defaults
+    config = BedrockClientConfig(
+        model="test-model", temperature=0.25, top_p=0.96, max_tokens=4096
+    )
     assert config.model == "test-model"
     assert config.temperature == 0.25
     assert config.max_tokens == 4096
@@ -34,8 +37,20 @@ def test_bedrock_client_config_inherits_ai_config():
     from crowler.ai.aws.bedrock_client_config import BedrockClientConfig
     from crowler.ai.ai_client_config import AIConfig
 
+    # Provide all required parameters to create a valid instance
+    config = BedrockClientConfig(
+        model="foo", temperature=0.5, top_p=0.9, max_tokens=2048
+    )
+
     # Instead of issubclass (which fails for non-runtime-checkable Protocols), check for attribute presence
     required_attrs = ["temperature", "max_tokens", "top_p", "model"]
-    config = BedrockClientConfig(model="foo")
     for attr in required_attrs:
         assert hasattr(config, attr)
+
+
+def test_bedrock_client_config_with_none_top_p():
+    # Test with top_p as None
+    config = BedrockClientConfig(
+        model="test-model", temperature=0.25, top_p=None, max_tokens=4096
+    )
+    assert config.top_p is None

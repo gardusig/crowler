@@ -53,17 +53,13 @@ class ClaudeClient(BedrockClient):
 
     def _parse_response(self, raw: dict[str, Any]) -> str:
         try:
-            thinking_content = None
             text_content = None
             for content_item in raw["content"]:
                 if content_item["type"] == "text":
                     text_content = content_item["text"]
                 elif content_item["type"] == "thinking":
-                    thinking_content = content_item["thinking"]
+                    _ = content_item["thinking"]
             if text_content:
-                typer.secho(
-                    f"⚠️ Thinking content: {thinking_content}", fg="yellow", err=True
-                )
                 return text_content
             else:
                 typer.secho(

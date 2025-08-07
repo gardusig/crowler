@@ -19,6 +19,7 @@ dependencies = [
   "pyperclip",
   "requests",
   "beautifulsoup4",
+  "mypy"
 ]
 classifiers = [
   "Programming Language :: Python :: 3",

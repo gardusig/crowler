@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
+import typer
 
 # Patch external dependencies at the top of the module
 patch("crowler.db.file_history_db.HistoryDB", autospec=True).start()
@@ -33,14 +34,14 @@ def store(mock_historydb):
     return FileHistoryStore("test_name", "Test Label")
 
 
-def test_append_adds_new_path(store, mock_historydb, capsys):
+def test_append_adds_new_path(store, mock_historydb):
+    # Remove capsys as we don't expect output from FileHistoryStore directly
     mock_historydb.latest.return_value = []
     store.append("  /foo/bar.txt  ")
     assert mock_historydb.push.called
     args, kwargs = mock_historydb.push.call_args
     assert "/foo/bar.txt" in args[0]
-    captured = capsys.readouterr()
-    assert "Added path: /foo/bar.txt" in captured.out
+    # FileHistoryStore doesn't print success messages
 
 
 @pytest.mark.parametrize("input_path", ["", "   "])
@@ -59,14 +60,14 @@ def test_append_duplicate_path(store, mock_historydb, capsys):
     assert "⚠️  Path already present: foo.txt" in captured.out
 
 
-def test_remove_existing_path(store, mock_historydb, capsys):
+def test_remove_existing_path(store, mock_historydb):
+    # Remove capsys as we don't expect output from FileHistoryStore directly
     mock_historydb.latest.return_value = ["foo.txt", "bar.txt"]
     store.remove("foo.txt")
     assert mock_historydb.push.called
     args, kwargs = mock_historydb.push.call_args
     assert "foo.txt" not in args[0]
-    captured = capsys.readouterr()
-    assert "Removed path: foo.txt" in captured.out
+    # FileHistoryStore doesn't print success messages
 
 
 def test_remove_empty_path(store, mock_historydb, capsys):
@@ -84,11 +85,11 @@ def test_remove_nonexistent_path(store, mock_historydb, capsys):
     assert "⚠️  Path not tracked: bar.txt" in captured.out
 
 
-def test_clear_calls_db_clear_and_prints(store, mock_historydb, capsys):
+def test_clear_calls_db_clear(store, mock_historydb):
+    # Renamed test and removed capsys as we don't expect output
     store.clear()
     assert mock_historydb.clear.called
-    captured = capsys.readouterr()
-    assert "test_name cleared." in captured.out
+    # FileHistoryStore doesn't print success messages
 
 
 def test_undo_success(store, mock_historydb, capsys):

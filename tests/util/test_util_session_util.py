@@ -97,3 +97,35 @@ def test__try_pty_failure(monkeypatch):
         session_util.os, "ttyname", lambda fd: "/dev/pts/shouldnotbecalled"
     )
     assert session_util._try_pty() is None
+
+
+def test__try_pty_ttyname_exception(monkeypatch):
+    """Test that _try_pty handles exceptions from os.ttyname."""
+
+    class DummyStdin:
+        def fileno(self):
+            return 42
+
+    def fake_ttyname(fd):
+        raise OSError("ttyname error")
+
+    monkeypatch.setattr(session_util.sys, "stdin", DummyStdin())
+    monkeypatch.setattr(session_util.os, "ttyname", fake_ttyname)
+
+    # Should catch the exception and return None
+    assert session_util._try_pty() is None
+
+
+def test_get_session_id_exception_handling(monkeypatch):
+    """Test exception handling in get_session_id when all methods fail."""
+
+    def raise_exception(*args, **kwargs):
+        raise Exception("Test exception")
+
+    monkeypatch.setattr(session_util, "_try_pty", raise_exception)
+    monkeypatch.setattr(session_util.os, "getenv", raise_exception)
+    monkeypatch.setattr(session_util.os, "getppid", raise_exception)
+
+    # The function should raise an exception after logging
+    with pytest.raises(Exception, match="Test exception"):
+        session_util.get_session_id()

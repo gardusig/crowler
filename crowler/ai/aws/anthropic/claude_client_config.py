@@ -27,3 +27,10 @@ class Claude37ClientConfig(ClaudeClientConfig):
     temperature: float = 1
     reasoning_max_tokens: Optional[int] = 16000
     model: str = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+
+
+@dataclass
+class Claude4SonnetClientConfig(ClaudeClientConfig):
+    temperature: float = 0.2
+    top_p: Optional[float] = 0.9
+    model: str = "us.anthropic.claude-sonnet-4-20250514-v1:0"

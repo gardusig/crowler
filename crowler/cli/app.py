@@ -78,7 +78,7 @@ def copy_to_clipboard():
     _clipboard_set(summary_all())
 
 
-@app.command(name="clipboard")
+@app.command(name="paste")
 def add_prompt_from_clipboard():
     append_prompt(_clipboard_get())
 
