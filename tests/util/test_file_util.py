@@ -1,4 +1,3 @@
-
 import pytest
 from pathlib import Path
 from collections import OrderedDict
@@ -36,7 +35,11 @@ def test_should_ignore(path_part, patterns, expected):
             file_util.DEFAULT_IGNORES,
             False,
         ),  # Changed from True to False - ? requires exactly one character
-        ("foo.jpeg", file_util.DEFAULT_IGNORES, False),  # Does not match *.jpe?g pattern - ? requires exactly one character
+        (
+            "foo.jpeg",
+            file_util.DEFAULT_IGNORES,
+            False,
+        ),  # Does not match *.jpe?g pattern - ? requires exactly one character
         ("test.py", ["test.*"], True),
         ("test.anything", ["test.*"], True),
     ],

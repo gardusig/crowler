@@ -1,4 +1,3 @@
-
 import pytest
 import typer
 from unittest.mock import patch, MagicMock, call, ANY  # Import ANY from unittest.mock
@@ -39,7 +38,9 @@ def mock_rewrite_files():
 def mock_parse_code_response():
     with patch("crowler.cli.code_app.parse_code_response") as mock:
         # Return file paths that will match our test files
-        mock.return_value = OrderedDict([("file1.py", "test content"), ("file2.py", "test content")])
+        mock.return_value = OrderedDict(
+            [("file1.py", "test content"), ("file2.py", "test content")]
+        )
         yield mock
 
 
@@ -47,7 +48,9 @@ def mock_parse_code_response():
 def mock_readme_parser():
     with patch("crowler.cli.code_app.parse_code_response") as mock:
         # For README tests, return appropriate README content
-        mock.return_value = OrderedDict([("README.md", "# Project Title\n\nProject description")])
+        mock.return_value = OrderedDict(
+            [("README.md", "# Project Title\n\nProject description")]
+        )
         yield mock
 
 
@@ -67,28 +70,30 @@ def test_create_unit_tests_command(
     # Assertions
     assert result.exit_code == 0
     assert mock_ai_client.send_message.call_count == 2  # Once for each file
-    mock_ai_client.send_message.assert_has_calls([
-        call(
-            instructions=[
-                ANY,  # RESPONSE_FORMAT_INSTRUCTION
-                ANY,  # UNIT_TEST_INSTRUCTION
-            ],
-            prompt_files=["file1.py"],
-            final_prompt='Focus only on creating|fixing test(s) for "file1.py"',
-        ),
-        call(
-            instructions=[
-                ANY,  # RESPONSE_FORMAT_INSTRUCTION
-                ANY,  # UNIT_TEST_INSTRUCTION
-            ],
-            prompt_files=["file2.py"],
-            final_prompt='Focus only on creating|fixing test(s) for "file2.py"',
-        ),
-    ])
+    mock_ai_client.send_message.assert_has_calls(
+        [
+            call(
+                instructions=[
+                    ANY,  # RESPONSE_FORMAT_INSTRUCTION
+                    ANY,  # UNIT_TEST_INSTRUCTION
+                ],
+                prompt_files=["file1.py"],
+                final_prompt='Focus only on creating|fixing test(s) for "file1.py"',
+            ),
+            call(
+                instructions=[
+                    ANY,  # RESPONSE_FORMAT_INSTRUCTION
+                    ANY,  # UNIT_TEST_INSTRUCTION
+                ],
+                prompt_files=["file2.py"],
+                final_prompt='Focus only on creating|fixing test(s) for "file2.py"',
+            ),
+        ]
+    )
     mock_parse_code_response.assert_has_calls(
         [
             call(response="test response", task_type=TaskType.TEST_GENERATION),
-            call(response="test response", task_type=TaskType.TEST_GENERATION)
+            call(response="test response", task_type=TaskType.TEST_GENERATION),
         ]
     )
     assert mock_rewrite_files.call_count == 2
@@ -100,7 +105,9 @@ def test_create_unit_test_function(
     # Setup
     mock_ai_client.send_message.return_value = "test response"
     # The key needs to match the filepath for the function's if condition to pass
-    mock_parse_code_response.return_value = OrderedDict([("test_file.py", "test content")])
+    mock_parse_code_response.return_value = OrderedDict(
+        [("test_file.py", "test content")]
+    )
 
     # Call the function
     create_unit_test(True, "test_file.py")
@@ -115,12 +122,10 @@ def test_create_unit_test_function(
         final_prompt='Focus only on creating|fixing test(s) for "test_file.py"',
     )
     mock_parse_code_response.assert_called_once_with(
-        response="test response",
-        task_type=TaskType.TEST_GENERATION
+        response="test response", task_type=TaskType.TEST_GENERATION
     )
     mock_rewrite_files.assert_called_once_with(
-        files=OrderedDict([("test_file.py", "test content")]),
-        force=True
+        files=OrderedDict([("test_file.py", "test content")]), force=True
     )
 
 
@@ -160,7 +165,7 @@ def test_create_readme_command(
     mock_readme_parser.assert_called_once_with("readme response")
     mock_rewrite_files.assert_called_once_with(
         files=OrderedDict([("README.md", "# Project Title\n\nProject description")]),
-        force=True
+        force=True,
     )
 
 
@@ -195,31 +200,45 @@ def test_fix_mypy_errors_command(
     # Assertions
     assert result.exit_code == 0
     assert mock_ai_client.send_message.call_count == 2  # Once for each file
-    mock_ai_client.send_message.assert_has_calls([
-        call(
-            instructions=[
-                ANY,  # RESPONSE_FORMAT_INSTRUCTION
-                ANY,  # MYPY_INSTRUCTION
-            ],
-            prompt_files=["file1.py"],
-            final_prompt="Focus on fixing only mypy errors related to file1.py",
-        ),
-        call(
-            instructions=[
-                ANY,  # RESPONSE_FORMAT_INSTRUCTION
-                ANY,  # MYPY_INSTRUCTION
-            ],
-            prompt_files=["file2.py"],
-            final_prompt="Focus on fixing only mypy errors related to file2.py",
-        ),
-    ])
+    mock_ai_client.send_message.assert_has_calls(
+        [
+            call(
+                instructions=[
+                    ANY,  # RESPONSE_FORMAT_INSTRUCTION
+                    ANY,  # MYPY_INSTRUCTION
+                ],
+                prompt_files=["file1.py"],
+                final_prompt="Focus on fixing only mypy errors related to file1.py",
+            ),
+            call(
+                instructions=[
+                    ANY,  # RESPONSE_FORMAT_INSTRUCTION
+                    ANY,  # MYPY_INSTRUCTION
+                ],
+                prompt_files=["file2.py"],
+                final_prompt="Focus on fixing only mypy errors related to file2.py",
+            ),
+        ]
+    )
     mock_parse_code_response.assert_has_calls(
         [call("mypy response"), call("mypy response")]
     )
-    mock_rewrite_files.assert_has_calls([
-        call(files=OrderedDict([("file1.py", "test content"), ("file2.py", "test content")]), force=True),
-        call(files=OrderedDict([("file1.py", "test content"), ("file2.py", "test content")]), force=True),
-    ])
+    mock_rewrite_files.assert_has_calls(
+        [
+            call(
+                files=OrderedDict(
+                    [("file1.py", "test content"), ("file2.py", "test content")]
+                ),
+                force=True,
+            ),
+            call(
+                files=OrderedDict(
+                    [("file1.py", "test content"), ("file2.py", "test content")]
+                ),
+                force=True,
+            ),
+        ]
+    )
 
 
 def test_fix_mypy_errors_command_handles_exception(
@@ -255,31 +274,45 @@ def test_improve_typer_logs_command(
     # Assertions
     assert result.exit_code == 0
     assert mock_ai_client.send_message.call_count == 2  # Once for each file
-    mock_ai_client.send_message.assert_has_calls([
-        call(
-            instructions=[
-                ANY,  # RESPONSE_FORMAT_INSTRUCTION
-                ANY,  # TYPER_LOG_INSTRUCTION
-            ],
-            prompt_files=["file1.py"],
-            final_prompt="Focus on only file1.py",
-        ),
-        call(
-            instructions=[
-                ANY,  # RESPONSE_FORMAT_INSTRUCTION
-                ANY,  # TYPER_LOG_INSTRUCTION
-            ],
-            prompt_files=["file2.py"],
-            final_prompt="Focus on only file2.py",
-        ),
-    ])
+    mock_ai_client.send_message.assert_has_calls(
+        [
+            call(
+                instructions=[
+                    ANY,  # RESPONSE_FORMAT_INSTRUCTION
+                    ANY,  # TYPER_LOG_INSTRUCTION
+                ],
+                prompt_files=["file1.py"],
+                final_prompt="Focus on only file1.py",
+            ),
+            call(
+                instructions=[
+                    ANY,  # RESPONSE_FORMAT_INSTRUCTION
+                    ANY,  # TYPER_LOG_INSTRUCTION
+                ],
+                prompt_files=["file2.py"],
+                final_prompt="Focus on only file2.py",
+            ),
+        ]
+    )
     mock_parse_code_response.assert_has_calls(
         [call("typer log response"), call("typer log response")]
     )
-    mock_rewrite_files.assert_has_calls([
-        call(files=OrderedDict([("file1.py", "test content"), ("file2.py", "test content")]), force=True),
-        call(files=OrderedDict([("file1.py", "test content"), ("file2.py", "test content")]), force=True),
-    ])
+    mock_rewrite_files.assert_has_calls(
+        [
+            call(
+                files=OrderedDict(
+                    [("file1.py", "test content"), ("file2.py", "test content")]
+                ),
+                force=True,
+            ),
+            call(
+                files=OrderedDict(
+                    [("file1.py", "test content"), ("file2.py", "test content")]
+                ),
+                force=True,
+            ),
+        ]
+    )
 
 
 def test_improve_typer_logs_command_skips_init_files(
@@ -288,18 +321,18 @@ def test_improve_typer_logs_command_skips_init_files(
     # Setup - use a more explicit list of files with an __init__.py
     with patch("crowler.cli.code_app.get_processing_files") as mock_get_files:
         mock_get_files.return_value = ["file1.py", "__init__.py"]
-        
+
         with patch("typer.secho") as mock_secho:
             with patch("crowler.cli.code_app.parse_code_response") as mock_parse:
                 mock_parse.return_value = OrderedDict([("file1.py", "test content")])
                 mock_ai_client.send_message.return_value = "typer log response"
-                
+
                 # Call the command
                 result = runner.invoke(code_app, ["typer-log", "--force"])
-                
+
                 # Assertions
                 assert result.exit_code == 0
-                
+
                 # Should only call send_message for file1.py, not for __init__.py
                 mock_ai_client.send_message.assert_called_once_with(
                     instructions=[
@@ -309,16 +342,16 @@ def test_improve_typer_logs_command_skips_init_files(
                     prompt_files=["file1.py"],
                     final_prompt="Focus on only file1.py",
                 )
-                
+
                 # Should only call rewrite_files once
                 mock_rewrite_files.assert_called_once_with(
-                    files=OrderedDict([("file1.py", "test content")]), 
-                    force=True
+                    files=OrderedDict([("file1.py", "test content")]), force=True
                 )
-                
+
                 # Should print a message about skipping __init__.py
                 skip_message_calls = [
-                    args for args, _ in mock_secho.call_args_list 
+                    args
+                    for args, _ in mock_secho.call_args_list
                     if "__init__.py" in args[0] and "Skipping" in args[0]
                 ]
                 assert len(skip_message_calls) == 1

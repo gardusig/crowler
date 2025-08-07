@@ -37,7 +37,7 @@ class PromptHistoryStore:
             return
         items.append(p)
         self._db.push(items)
-        typer.secho(f"✅ Added prompt", fg="green")
+        typer.secho("✅ Added prompt", fg="green")
 
     def remove(self, prompt: str) -> None:
         p = prompt.strip()
