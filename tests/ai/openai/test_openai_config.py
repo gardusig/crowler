@@ -1,4 +1,5 @@
 import pytest
+from typing import Optional
 
 
 @pytest.fixture(autouse=True)
@@ -15,18 +16,18 @@ def stub_aiconfig(monkeypatch):
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
-    import sasori.ai.openai.openai_config as target_module
+    import crowler.ai.openai.openai_config as target_module
 
     monkeypatch.setattr(target_module, "AIConfig", DummyAIConfig)
     yield
 
 
 def test_openai_config_defaults(stub_aiconfig):
-    from sasori.ai.openai.openai_config import OpenAIConfig
+    from crowler.ai.openai.openai_config import OpenAIConfig
 
     config = OpenAIConfig()
-    # Should inherit from DummyAIConfig
-    assert isinstance(config, object)
+    # Should be an instance of OpenAIConfig
+    assert isinstance(config, OpenAIConfig)
     assert hasattr(config, "model")
     assert hasattr(config, "temperature")
     assert hasattr(config, "max_tokens")
@@ -48,7 +49,7 @@ def test_openai_config_defaults(stub_aiconfig):
 def test_openai_config_custom_values(
     stub_aiconfig, model, temperature, max_tokens, top_p
 ):
-    from sasori.ai.openai.openai_config import OpenAIConfig
+    from crowler.ai.openai.openai_config import OpenAIConfig
 
     config = OpenAIConfig(
         model=model,
@@ -60,3 +61,24 @@ def test_openai_config_custom_values(
     assert config.temperature == temperature
     assert config.max_tokens == max_tokens
     assert config.top_p == top_p
+
+
+def test_openai_config_none_top_p(stub_aiconfig):
+    """Test that top_p can be None since it's Optional[float]"""
+    from crowler.ai.openai.openai_config import OpenAIConfig
+
+    config = OpenAIConfig(top_p=None)
+    assert config.top_p is None
+
+
+def test_openai_config_temperature_boundary_values(stub_aiconfig):
+    """Test boundary values for temperature parameter"""
+    from crowler.ai.openai.openai_config import OpenAIConfig
+
+    # Test minimum temperature
+    config_min = OpenAIConfig(temperature=0.0)
+    assert config_min.temperature == 0.0
+
+    # Test maximum temperature
+    config_max = OpenAIConfig(temperature=1.0)
+    assert config_max.temperature == 1.0

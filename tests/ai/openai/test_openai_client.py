@@ -1,7 +1,7 @@
 import pytest
 from typing import List, Dict, Any
 
-from sasori.ai.openai.openai_client import OpenAIClient
+from crowler.ai.openai.openai_client import OpenAIClient
 
 
 class DummyResponse:
@@ -27,7 +27,7 @@ def dummy_openai(monkeypatch):
         chat = DummyChat()
 
     monkeypatch.setattr(
-        "sasori.ai.openai.openai_client.OpenAI", lambda api_key: DummyClient()
+        "crowler.ai.openai.openai_client.OpenAI", lambda api_key: DummyClient()
     )
 
 
@@ -45,7 +45,7 @@ def test_init_raises_if_no_api_key(monkeypatch):
 def test_init_sets_client(monkeypatch, set_openai_api_key):
     dummy_client = object()
     monkeypatch.setattr(
-        "sasori.ai.openai.openai_client.OpenAI", lambda api_key: dummy_client
+        "crowler.ai.openai.openai_client.OpenAI", lambda api_key: dummy_client
     )
     client = OpenAIClient()
     assert client.client is dummy_client
@@ -85,10 +85,39 @@ def test_get_response_returns_empty_string_if_no_content(
         chat = DummyChat()
 
     monkeypatch.setattr(
-        "sasori.ai.openai.openai_client.OpenAI", lambda api_key: DummyClient()
+        "crowler.ai.openai.openai_client.OpenAI", lambda api_key: DummyClient()
     )
     client = OpenAIClient()
     # Use the correct type for messages to satisfy mypy
     messages: List[Any] = [{"role": "user", "content": "Say hi"}]
     result = client.get_response(messages)
     assert result == ""
+
+
+def test_get_response_handles_error(monkeypatch, set_openai_api_key, capsys):
+    # Mock OpenAI client to raise an exception during API call
+    class DummyChatCompletions:
+        def create(self, **kwargs):
+            raise Exception("API Error")
+
+    class DummyChat:
+        completions = DummyChatCompletions()
+
+    class DummyClient:
+        chat = DummyChat()
+
+    monkeypatch.setattr(
+        "crowler.ai.openai.openai_client.OpenAI", lambda api_key: DummyClient()
+    )
+
+    client = OpenAIClient()
+    messages: List[Any] = [{"role": "user", "content": "Say hi"}]
+
+    # Verify the exception is propagated
+    with pytest.raises(Exception, match="API Error"):
+        client.get_response(messages)
+
+    # Check that error message was logged
+    captured = capsys.readouterr()
+    assert "Failed to get response" in captured.err
+    assert "API Error" in captured.err

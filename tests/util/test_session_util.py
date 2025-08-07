@@ -1,102 +1,154 @@
 import pytest
+import sys
 from pathlib import Path
 
-import sys
+import builtins
 
-import sasori.util.session_util as session_util
+import crowler.util.session_util as session_util
 
 
 @pytest.fixture(autouse=True)
 def patch_cache_dir(tmp_path, monkeypatch):
-    # Patch CACHE_DIR to tmp_path/.cache/cli_history for isolation
-    cache_dir = tmp_path / ".cache" / "cli_history"
-    monkeypatch.setattr(session_util, "CACHE_DIR", cache_dir)
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    yield
+    # Patch CACHE_DIR to use a temp directory for all tests
+    monkeypatch.setattr(session_util, "CACHE_DIR", tmp_path)
+    # Ensure directory exists
+    tmp_path.mkdir(parents=True, exist_ok=True)
 
 
-@pytest.mark.parametrize(
-    "env,pty,wt_session,ppid,expected_raw",
-    [
-        # HISTORY_SESSION_ID takes precedence
-        ({"HISTORY_SESSION_ID": "mysession"}, None, None, 1234, "mysession"),
-        # _try_pty returns a value if HISTORY_SESSION_ID is not set
-        ({}, "/dev/pts/9", None, 1234, "/dev/pts/9"),
-        # WT_SESSION used if HISTORY_SESSION_ID and _try_pty are not set
-        ({}, None, "wt-session-abc", 1234, "wt-session-abc"),
-        # Fallback to parent PID as string
-        ({}, None, None, 5678, "5678"),
-    ],
-)
-def test_get_session_id(monkeypatch, env, pty, wt_session, ppid, expected_raw):
-    # Patch environment variables
-    monkeypatch.setattr(
-        session_util.os,
-        "getenv",
-        lambda k: (
-            env.get(k) if k in env else (wt_session if k == "WT_SESSION" else None)
-        ),
-    )
-    # Patch _try_pty
-    monkeypatch.setattr(session_util, "_try_pty", lambda: pty)
-    # Patch os.getppid
-    monkeypatch.setattr(session_util.os, "getppid", lambda: ppid)
-    # Patch _hash to check input
-    called = {}
-
-    def fake_hash(text):
-        called["raw"] = text
-        return "hashed"
-
-    monkeypatch.setattr(session_util, "_hash", fake_hash)
-    result = session_util.get_session_id()
-    assert result == "hashed"
-    assert called["raw"] == expected_raw
-
-
-def test__hash_returns_md5_prefix():
-    # Check that _hash returns the first 8 chars of md5
-    result = session_util._hash("foobar")
-    import hashlib
-
-    expected = hashlib.md5("foobar".encode()).hexdigest()[:8]
+def test_create_session_file_uses_cache_dir(monkeypatch):
+    # Patch get_session_id to return a fixed value
+    monkeypatch.setattr(session_util, "get_session_id", lambda: "abc12345")
+    name = "mysession"
+    expected = session_util.CACHE_DIR / "mysession.abc12345.json"
+    result = session_util.create_session_file(name)
     assert result == expected
 
 
-def test_create_session_file(monkeypatch):
-    # Patch get_session_id to return a fixed value
-    monkeypatch.setattr(session_util, "get_session_id", lambda: "deadbeef")
-    name = "testfile"
-    expected_path = session_util.CACHE_DIR / f"{name}.deadbeef.json"
-    result = session_util.create_session_file(name)
-    assert result == expected_path
-
-
 @pytest.mark.parametrize(
-    "fileno_side_effect,ttyname_side_effect,expected",
+    "input_text,expected_hash",
     [
-        # Success path: os.ttyname returns a string
-        (0, lambda fd: "/dev/pts/3", "/dev/pts/3"),
-        # Failure: fileno raises
-        (lambda: (_ for _ in ()).throw(OSError("fail")), None, None),
-        # Failure: os.ttyname raises
-        (0, lambda fd: (_ for _ in ()).throw(OSError("fail")), None),
+        ("hello", session_util.hashlib.md5("hello".encode()).hexdigest()[:8]),
+        ("", session_util.hashlib.md5("".encode()).hexdigest()[:8]),
+        ("1234567890", session_util.hashlib.md5("1234567890".encode()).hexdigest()[:8]),
     ],
 )
-def test__try_pty(monkeypatch, fileno_side_effect, ttyname_side_effect, expected):
-    # Patch sys.stdin.fileno
+def test__hash_returns_truncated_md5(input_text, expected_hash):
+    assert session_util._hash(input_text) == expected_hash
+
+
+def test_get_session_id_prefers_history_session_id(monkeypatch):
+    monkeypatch.setenv("HISTORY_SESSION_ID", "mytestsession")
+    monkeypatch.setattr(session_util, "_try_pty", lambda: None)
+    monkeypatch.delenv("WT_SESSION", raising=False)
+    monkeypatch.setattr(session_util.os, "getppid", lambda: 12345)
+    result = session_util.get_session_id()
+    assert result == session_util._hash("mytestsession")
+
+
+def test_get_session_id_uses_try_pty(monkeypatch):
+    monkeypatch.delenv("HISTORY_SESSION_ID", raising=False)
+    monkeypatch.setattr(session_util, "_try_pty", lambda: "/dev/pts/7")
+    monkeypatch.delenv("WT_SESSION", raising=False)
+    monkeypatch.setattr(session_util.os, "getppid", lambda: 12345)
+    result = session_util.get_session_id()
+    assert result == session_util._hash("/dev/pts/7")
+
+
+def test_get_session_id_uses_wt_session(monkeypatch):
+    monkeypatch.delenv("HISTORY_SESSION_ID", raising=False)
+    monkeypatch.setattr(session_util, "_try_pty", lambda: None)
+    monkeypatch.setenv("WT_SESSION", "windows-terminal-session")
+    monkeypatch.setattr(session_util.os, "getppid", lambda: 12345)
+    result = session_util.get_session_id()
+    assert result == session_util._hash("windows-terminal-session")
+
+
+def test_get_session_id_fallbacks_to_parent_pid(monkeypatch):
+    monkeypatch.delenv("HISTORY_SESSION_ID", raising=False)
+    monkeypatch.setattr(session_util, "_try_pty", lambda: None)
+    monkeypatch.delenv("WT_SESSION", raising=False)
+    monkeypatch.setattr(session_util.os, "getppid", lambda: 54321)
+    result = session_util.get_session_id()
+    assert result == session_util._hash("54321")
+
+
+def test_get_session_id_error_handling(monkeypatch):
+    # Set up to raise an exception during get_session_id
+    monkeypatch.delenv("HISTORY_SESSION_ID", raising=False)
+    monkeypatch.setattr(session_util, "_try_pty", lambda: None)
+    monkeypatch.delenv("WT_SESSION", raising=False)
+
+    def raise_error():
+        raise ValueError("Test error")
+
+    monkeypatch.setattr(session_util.os, "getppid", raise_error)
+
+    # Create a mock function for typer.secho
+    from unittest import mock
+
+    mock_secho = mock.MagicMock()
+    monkeypatch.setattr(session_util.typer, "secho", mock_secho)
+
+    # Test that the exception is re-raised
+    with pytest.raises(ValueError, match="Test error"):
+        session_util.get_session_id()
+
+    # Assert that secho was called with expected arguments
+    mock_secho.assert_called_once()
+    call_args = mock_secho.call_args[0][0]
+    assert "Failed to determine session ID" in call_args
+    assert "Test error" in call_args
+
+
+def test__try_pty_success(monkeypatch):
     class DummyStdin:
         def fileno(self):
-            if callable(fileno_side_effect):
-                return fileno_side_effect()
-            return fileno_side_effect
+            return 42
+
+    def fake_ttyname(fd):
+        assert fd == 42
+        return "/dev/pts/9"
 
     monkeypatch.setattr(session_util.sys, "stdin", DummyStdin())
-    # Patch os.ttyname
-    if ttyname_side_effect is not None:
-        monkeypatch.setattr(session_util.os, "ttyname", ttyname_side_effect)
-    else:
-        # Remove os.ttyname to simulate error
-        monkeypatch.delattr(session_util.os, "ttyname", raising=False)
+    monkeypatch.setattr(session_util.os, "ttyname", fake_ttyname)
+    assert session_util._try_pty() == "/dev/pts/9"
+
+
+def test__try_pty_failure(monkeypatch):
+    class DummyStdin:
+        def fileno(self):
+            raise OSError("no fileno")
+
+    monkeypatch.setattr(session_util.sys, "stdin", DummyStdin())
+    # Even if os.ttyname is called, it should not matter
+    monkeypatch.setattr(
+        session_util.os, "ttyname", lambda fd: "/dev/pts/shouldnotbecalled"
+    )
+    assert session_util._try_pty() is None
+
+
+def test__try_pty_ttyname_failure(monkeypatch):
+    class DummyStdin:
+        def fileno(self):
+            return 42
+
+    def fake_ttyname_error(fd):
+        raise OSError("ttyname error")
+
+    monkeypatch.setattr(session_util.sys, "stdin", DummyStdin())
+    monkeypatch.setattr(session_util.os, "ttyname", fake_ttyname_error)
+
+    # Create a mock function for typer.secho
+    from unittest import mock
+
+    mock_secho = mock.MagicMock()
+    monkeypatch.setattr(session_util.typer, "secho", mock_secho)
+
     result = session_util._try_pty()
-    assert result == expected
+    assert result is None
+
+    # Assert that secho was called with expected arguments
+    mock_secho.assert_called_once()
+    call_args = mock_secho.call_args[0][0]
+    assert "Could not get TTY name" in call_args
+    assert "ttyname error" in call_args

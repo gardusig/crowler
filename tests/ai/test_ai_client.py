@@ -1,211 +1,148 @@
 import pytest
 from unittest.mock import patch, MagicMock
-
-# Patch all external dependencies at the module level
-with (
-    patch("sasori.ai.ai_client.get_shared_files", return_value=[]),
-    patch("sasori.ai.ai_client.get_latest_prompts", return_value=[]),
-    patch("sasori.ai.ai_client.stringify_file_contents", return_value=[]),
-    patch("sasori.ai.ai_client.get_instruction_strings", return_value=[]),
-):
-
-    from sasori.ai.ai_client import AIClient
+from pathlib import Path
+from crowler.ai.ai_client import AIClient
+from crowler.ai.ai_client_config import AIConfig
+from crowler.instruction.instruction_model import Instruction
 
 
-# Dummy config and instruction for tests
-class DummyConfig:
-    pass
+class MockAIConfig(AIConfig):
+    """Mock implementation of AIConfig for testing"""
+
+    model = "test-model"
+    temperature = 0.5
+    top_p = 0.9
+    max_tokens = 500
 
 
-class DummyInstruction:
-    pass
+class MockAIClient(AIClient):
+    """Mock implementation of AIClient for testing"""
 
-
-class DummyAIClient(AIClient):
     def get_response(self, messages):
-        return "dummy-response"
+        return f"Response to {len(messages)} messages"
 
 
 @pytest.fixture
 def ai_client():
-    return DummyAIClient(DummyConfig())
+    return MockAIClient(MockAIConfig())
 
 
-@pytest.mark.parametrize(
-    "instructions, prompt_files, final_prompt, shared_files, prompt_db, expected_roles",
-    [
-        # Only instructions
-        ([[MagicMock(spec=DummyInstruction)]], None, None, [], [], ["system"]),
-        # Only prompt_files
-        (None, ["file1.txt"], None, [], [], ["user"]),
-        # Only final_prompt
-        (None, None, "final prompt", [], [], ["user"]),
-        # All present, with shared_files and prompt_db
-        (
-            [MagicMock(spec=DummyInstruction)],
-            ["file1.txt", "file2.txt"],
-            "final prompt",
-            ["shared1.txt", "shared2.txt"],
-            ["prompt1", "prompt2"],
-            ["system", "user", "user", "user", "user"],
-        ),
-        # Nothing present
-        (None, None, None, [], [], []),
-    ],
-)
-def test_format_messages_various_inputs(
-    ai_client,
-    instructions,
-    prompt_files,
-    final_prompt,
-    shared_files,
-    prompt_db,
-    expected_roles,
-):
-    with (
-        patch(
-            "sasori.ai.ai_client.get_instruction_strings",
-            return_value=["instr1", "instr2"],
-        ),
-        patch("sasori.ai.ai_client.get_shared_files", return_value=shared_files),
-        patch(
-            "sasori.ai.ai_client.stringify_file_contents",
-            side_effect=lambda files, *args, **kwargs: [f"content:{f}" for f in files],
-        ),
-        patch("sasori.ai.ai_client.get_latest_prompts", return_value=prompt_db),
-    ):
-
-        msgs = ai_client._format_messages(
-            instructions=instructions,
-            prompt_files=prompt_files,
-            final_prompt=final_prompt,
-        )
-        assert [m["role"] for m in msgs] == expected_roles
-        for msg in msgs:
-            assert "role" in msg
-            assert "content" in msg
-            assert isinstance(msg["content"], str)
+def test_init():
+    config = MockAIConfig()
+    client = MockAIClient(config)
+    assert client.config == config
+    assert client.config.model == "test-model"
+    assert client.config.temperature == 0.5
 
 
-@pytest.mark.parametrize(
-    "instructions, prompt_files, final_prompt, shared_files, prompt_db, expected_contents",
-    [
-        # Only shared files
-        (None, None, None, ["shared1.txt"], [], ["content:shared1.txt"]),
-        # Only prompt_files
-        (None, ["promptfile.txt"], None, [], [], ["content:promptfile.txt"]),
-        # Only prompt_db
-        (None, None, None, [], ["prompt1"], ["prompt1"]),
-        # Only final_prompt
-        (None, None, "final prompt", [], [], ["final prompt"]),
-    ],
-)
-def test_format_messages_content(
-    ai_client,
-    instructions,
-    prompt_files,
-    final_prompt,
-    shared_files,
-    prompt_db,
-    expected_contents,
-):
-    with (
-        patch("sasori.ai.ai_client.get_instruction_strings", return_value=["instr1"]),
-        patch("sasori.ai.ai_client.get_shared_files", return_value=shared_files),
-        patch(
-            "sasori.ai.ai_client.stringify_file_contents",
-            side_effect=lambda files, *args, **kwargs: [f"content:{f}" for f in files],
-        ),
-        patch("sasori.ai.ai_client.get_latest_prompts", return_value=prompt_db),
-    ):
+def test_send_message_with_all_arguments(ai_client, monkeypatch):
+    # Test data
+    mock_instructions = [MagicMock(spec=Instruction)]
+    mock_prompt_files = ["file1.txt", "file2.txt"]
+    mock_final_prompt = "final prompt"
 
-        msgs = ai_client._format_messages(
-            instructions=instructions,
-            prompt_files=prompt_files,
-            final_prompt=final_prompt,
-        )
-        if msgs:
-            assert msgs[-1]["content"].split("\n") == expected_contents
-
-
-def test_send_message_calls_get_response_and_prints(monkeypatch, ai_client):
-    # Patch _format_messages to return a known list
-    messages = [
-        {"role": "system", "content": "hello"},
-        {"role": "user", "content": "world"},
+    formatted_messages = [
+        {"role": "system", "content": "system content"},
+        {"role": "user", "content": "user content"},
     ]
-    monkeypatch.setattr(ai_client, "_format_messages", lambda **kwargs: messages)
-    # Patch get_response to check call and return value
-    monkeypatch.setattr(ai_client, "get_response", lambda messages: "response123")
+
+    # Mock format_messages
+    mock_format = MagicMock(return_value=formatted_messages)
+    monkeypatch.setattr("crowler.ai.ai_client.format_messages", mock_format)
+
+    # Mock get_response
+    mock_response = MagicMock(return_value="Test response")
+    monkeypatch.setattr(ai_client, "get_response", mock_response)
+
+    # Call send_message
+    result = ai_client.send_message(
+        instructions=mock_instructions,
+        prompt_files=mock_prompt_files,
+        final_prompt=mock_final_prompt,
+    )
+
+    # Verify format_messages was called correctly
+    mock_format.assert_called_once_with(
+        instructions=mock_instructions,
+        prompt_files=mock_prompt_files,
+        final_prompt=mock_final_prompt,
+    )
+
+    # Verify get_response was called with the formatted messages
+    mock_response.assert_called_once_with(messages=formatted_messages)
+
+    # Verify the result
+    assert result == "Test response"
+
+
+def test_send_message_with_default_arguments(ai_client, monkeypatch):
+    # Mock format_messages
+    formatted_messages = []
+    mock_format = MagicMock(return_value=formatted_messages)
+    monkeypatch.setattr("crowler.ai.ai_client.format_messages", mock_format)
+
+    # Mock get_response
+    mock_response = MagicMock(return_value="Empty response")
+    monkeypatch.setattr(ai_client, "get_response", mock_response)
+
+    # Call send_message with default arguments
     result = ai_client.send_message()
-    assert result == "response123"
+
+    # Verify format_messages was called correctly with None arguments
+    mock_format.assert_called_once_with(
+        instructions=None, prompt_files=None, final_prompt=None
+    )
+
+    # Verify get_response was called with empty messages
+    mock_response.assert_called_once_with(messages=[])
+
+    # Verify the result
+    assert result == "Empty response"
 
 
-def test_format_messages_with_none_inputs(ai_client):
-    with (
-        patch("sasori.ai.ai_client.get_instruction_strings", return_value=[]),
-        patch("sasori.ai.ai_client.get_shared_files", return_value=[]),
-        patch("sasori.ai.ai_client.stringify_file_contents", return_value=[]),
-        patch("sasori.ai.ai_client.get_latest_prompts", return_value=[]),
-    ):
-        msgs = ai_client._format_messages(
-            instructions=None,
-            prompt_files=None,
-            final_prompt=None,
-        )
-        assert msgs == []
+def test_send_message_with_path_objects(ai_client, monkeypatch):
+    # Test with Path objects for prompt_files
+    path_files = [Path("file1.txt"), Path("file2.txt")]
+
+    formatted_messages = [{"role": "user", "content": "file content"}]
+    mock_format = MagicMock(return_value=formatted_messages)
+    monkeypatch.setattr("crowler.ai.ai_client.format_messages", mock_format)
+
+    mock_response = MagicMock(return_value="Path response")
+    monkeypatch.setattr(ai_client, "get_response", mock_response)
+
+    result = ai_client.send_message(prompt_files=path_files)
+
+    mock_format.assert_called_once_with(
+        instructions=None, prompt_files=path_files, final_prompt=None
+    )
+    assert result == "Path response"
 
 
-def test_format_messages_with_multiple_shared_and_prompt_files(ai_client):
-    with (
-        patch("sasori.ai.ai_client.get_instruction_strings", return_value=[]),
-        patch(
-            "sasori.ai.ai_client.get_shared_files",
-            return_value=["a.txt", "b.txt"],
-        ),
-        patch(
-            "sasori.ai.ai_client.stringify_file_contents",
-            side_effect=lambda files, *args, **kwargs: [f"file:{f}" for f in files],
-        ),
-        patch("sasori.ai.ai_client.get_latest_prompts", return_value=[]),
-    ):
-        msgs = ai_client._format_messages(
-            instructions=None,
-            prompt_files=["c.txt", "d.txt"],
-            final_prompt=None,
-        )
-        # Should have two user messages: one for shared, one for prompt_files
-        assert len(msgs) == 2
-        assert msgs[0]["content"] == "file:a.txt\nfile:b.txt"
-        assert msgs[1]["content"] == "file:c.txt\nfile:d.txt"
+def test_send_message_error_handling(ai_client, monkeypatch):
+    # Mock format_messages to raise an exception
+    mock_format = MagicMock(side_effect=ValueError("Format error"))
+    monkeypatch.setattr("crowler.ai.ai_client.format_messages", mock_format)
+
+    # Test that the exception is propagated
+    with pytest.raises(ValueError, match="Format error"):
+        ai_client.send_message()
+
+    # Mock format_messages to succeed but get_response to fail
+    mock_format = MagicMock(return_value=[{"role": "user", "content": "test"}])
+    monkeypatch.setattr("crowler.ai.ai_client.format_messages", mock_format)
+
+    mock_response = MagicMock(side_effect=RuntimeError("API error"))
+    monkeypatch.setattr(ai_client, "get_response", mock_response)
+
+    with pytest.raises(RuntimeError, match="API error"):
+        ai_client.send_message()
 
 
-def test_format_messages_with_all_sections(ai_client):
-    with (
-        patch(
-            "sasori.ai.ai_client.get_instruction_strings",
-            return_value=["sys1", "sys2"],
-        ),
-        patch("sasori.ai.ai_client.get_shared_files", return_value=["s.txt"]),
-        patch(
-            "sasori.ai.ai_client.stringify_file_contents",
-            side_effect=lambda files, *args, **kwargs: [f"sf:{f}" for f in files],
-        ),
-        patch("sasori.ai.ai_client.get_latest_prompts", return_value=["promptA"]),
-    ):
-        msgs = ai_client._format_messages(
-            instructions=[MagicMock(spec=DummyInstruction)],
-            prompt_files=["p.txt"],
-            final_prompt="final!",
-        )
-        assert len(msgs) == 5
-        assert msgs[0]["role"] == "system"
-        assert msgs[1]["role"] == "user"
-        assert msgs[2]["role"] == "user"
-        assert msgs[3]["role"] == "user"
-        assert msgs[4]["role"] == "user"
-        assert msgs[0]["content"] == "sys1\nsys2"
-        assert msgs[1]["content"] == "sf:s.txt"
-        assert msgs[2]["content"] == "sf:p.txt"
-        assert msgs[3]["content"] == "promptA"
-        assert msgs[4]["content"] == "final!"
+def test_abstract_methods():
+    # AIClient is abstract and requires get_response to be implemented
+    config = MockAIConfig()
+
+    # Should raise TypeError when trying to instantiate abstract class
+    with pytest.raises(TypeError):
+        AIClient(config)  # This should fail because get_response is abstract

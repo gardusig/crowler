@@ -5,12 +5,12 @@ from unittest.mock import patch, mock_open
 
 # Patch all external dependencies at the top of the module under test
 with (
-    patch("sasori.db.history_db.json", autospec=True) as mock_json,
-    patch("sasori.db.history_db.Path", wraps=Path) as mock_Path,
-    patch("sasori.db.history_db.open", create=True) as mock_open_func,
+    patch("crowler.db.history_db.json", autospec=True) as mock_json,
+    patch("crowler.db.history_db.Path", wraps=Path) as mock_Path,
+    patch("crowler.db.history_db.open", create=True) as mock_open_func,
 ):
 
-    from sasori.db.history_db import HistoryDB
+    from crowler.db.history_db import HistoryDB
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def test_init_bootstraps_file_if_not_exists(tmp_path, monkeypatch):
     # Simulate file not existing
     monkeypatch.setattr(Path, "exists", lambda self: False)
     m = mock_open()
-    with patch("sasori.db.history_db.open", m):
+    with patch("crowler.db.history_db.open", m):
         db = HistoryDB(
             file_path=file_path,
             empty={"foo": "empty"},

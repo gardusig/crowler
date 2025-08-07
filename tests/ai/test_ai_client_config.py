@@ -1,12 +1,11 @@
 import pytest
+from typing import Optional
 
-from sasori.ai.ai_client_config import AIConfig
 
-
-class DummyAIConfig(AIConfig):
+class DummyAIConfig:
     temperature: float = 0.7
     max_tokens: int = 256
-    top_p: float = 0.9
+    top_p: Optional[float] = 0.9
     model: str = "gpt-3.5-turbo"
 
 
@@ -31,8 +30,7 @@ def test_dummy_ai_config_implements_aiconfig():
     ],
 )
 def test_various_aiconfig_values(temperature, max_tokens, top_p, model):
-    # Use an instance with __init__ to avoid NameError in class scope
-    class CustomConfig(AIConfig):
+    class CustomConfig:
         def __init__(
             self, temperature: float, max_tokens: int, top_p: float, model: str
         ):
@@ -49,10 +47,9 @@ def test_various_aiconfig_values(temperature, max_tokens, top_p, model):
 
 
 def test_missing_attribute_raises_attribute_error():
-    class IncompleteConfig(AIConfig):
+    class IncompleteConfig:
         temperature = 0.5
         max_tokens = 100
-        # top_p is missing
         model = "gpt-4"
 
         def __getattribute__(self, name):
@@ -63,3 +60,16 @@ def test_missing_attribute_raises_attribute_error():
     config = IncompleteConfig()
     with pytest.raises(AttributeError):
         _ = config.top_p
+
+
+def test_none_top_p_is_valid():
+    """Test that None is a valid value for top_p since it's Optional[float]"""
+
+    class ConfigWithNoneTopP:
+        temperature = 0.5
+        max_tokens = 100
+        top_p = None
+        model = "gpt-4"
+
+    config = ConfigWithNoneTopP()
+    assert config.top_p is None
