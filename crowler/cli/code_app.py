@@ -36,7 +36,6 @@ def create_unit_tests(
 
 
 def create_unit_test(force: bool, filepath: str):
-    print(filepath)
     if filepath.endswith("__init__.py"):
         typer.secho(f"⚠️  Skipping __init__.py file: {filepath}", fg="yellow")
         return
@@ -54,7 +53,6 @@ def create_unit_test(force: bool, filepath: str):
         task_type=TaskType.TEST_GENERATION,
     )
     for path, content in file_map.items():
-        print(path)
         if not filepath.endswith(path):
             continue
         rewrite_files(
