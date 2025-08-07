@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crowler"
-version = "0.0.1"
+version = "0.0.3"
 description = "CLI toolkit for managing prompts, files, and AI-powered workflows"
 authors = [{ name = "Gustavo Gardusi", email = "gustavo.gardusi@gmail.com" }]
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE" }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
   "openai",
   "python-dotenv",
@@ -19,7 +19,7 @@ dependencies = [
   "pyperclip",
   "requests",
   "beautifulsoup4",
-  "mypy"
+  "mypy",
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -29,7 +29,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "mypy", "black", "flake8"]
+dev = ["pytest", "mypy", "black", "flake8", "build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/gardusig/crowler"
