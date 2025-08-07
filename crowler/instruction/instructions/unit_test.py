@@ -32,5 +32,7 @@ UNIT_TEST_INSTRUCTION = Instruction(
         "the behavior under test.",
         "Keep each test focused on a single behavior or scenario for maximum"
         "clarity and maintainability.",
+        "No need to confirm print and logs in tests, just evaluate if the function"
+        "works as expected by calling it and validating the expected behavior",
     ],
 )
