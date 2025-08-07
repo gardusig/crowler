@@ -52,7 +52,15 @@ class HistoryDB(Generic[T]):
         self._save([self._empty])
 
     def summary(self) -> str:
-        return self._pretty(self.latest())
+        content = self.latest()
+        is_empty = False
+        if content == self._empty:
+            is_empty = True
+        elif isinstance(content, (list, dict)) and not content:
+            is_empty = True
+        if is_empty:
+            return ""
+        return self._pretty(content)
 
     # ───── private helpers ───────────────────────────────────────────
 

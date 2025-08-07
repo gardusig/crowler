@@ -55,14 +55,17 @@ def _clipboard_set(text: str) -> None:
 
 
 def summary_all() -> str:
-    return "\n".join(
-        [
-            summary_prompts(),
-            summary_shared_files(),
-            summary_processing_files(),
-            summary_urls(),
-        ]
-    )
+    not_empty_summary_list = []
+    summary_list = [
+        summary_prompts(),
+        summary_shared_files(),
+        summary_processing_files(),
+        summary_urls(),
+    ]
+    for summary in summary_list:
+        if summary:
+            not_empty_summary_list.append(summary)
+    return "\n".join(not_empty_summary_list)
 
 
 # ───────────────────────── commands ───────────────────────── #
@@ -70,7 +73,11 @@ def summary_all() -> str:
 
 @app.command(name="show")
 def preview():
-    typer.echo(summary_all())
+    summary_list = summary_all()
+    if not summary_list:
+        typer.echo("Empty")
+        return
+    typer.echo(summary_list)
 
 
 @app.command(name="copy")
@@ -95,4 +102,4 @@ def clear_all():
 def ask():
     ai_client = get_ai_client()
     response = ai_client.send_message()
-    print(response)
+    typer.echo(response)
