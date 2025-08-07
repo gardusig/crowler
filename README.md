@@ -14,6 +14,7 @@ Command-line toolkit for managing prompts, files, and AI-powered workflows!
   - [🚀 Installation \& Setup](#-installation--setup)
     - [macOS: Python \& Homebrew](#macos-python--homebrew)
     - [Project Setup](#project-setup)
+    - [Self improvement loop](#self-improvement-loop)
   - [🔐 Environment Configuration](#-environment-configuration)
   - [🛠️ CLI Usage](#️-cli-usage)
     - [💡 Prompt Management](#-prompt-management)
@@ -57,6 +58,24 @@ python3 -m venv venv
 source venv/bin/activate
 python3 -m pip install -e .
 python3 -m pip install -e ".[dev]"
+```
+
+### Self improvement loop
+
+Check if there's any failing test:
+
+```
+pytest -v .
+```
+
+In case there is, try using crowler to fix itself:
+
+```
+pytest -v . | pbcopy && \
+python -m crowler.main prompt clear && \
+python -m crowler.main paste && \
+python -m crowler.main show && \
+python -m crowler.main code unit-test --force
 ```
 
 ## 🔐 Environment Configuration
