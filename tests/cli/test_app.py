@@ -1,6 +1,7 @@
+
 import pyperclip
 from typer.testing import CliRunner
-from unittest.mock import patch
+from unittest.mock import patch, call
 from crowler.cli.app import app
 
 runner = CliRunner()
@@ -40,10 +41,10 @@ def test_preview_command():
 
 
 def test_add_prompt_command():
-    with patch("crowler.cli.app.append_prompt") as mock_append_prompt:
-        # Use the 'prompt add' subcommand instead of just 'add'
+    # The key fix: patch where the function is imported in prompt_app.py, not where it's defined
+    with patch('crowler.cli.prompt_app.append_prompt') as mock_append_prompt:
         result = runner.invoke(app, ["prompt", "add", "Test prompt"])
-
+        
         assert result.exit_code == 0
         mock_append_prompt.assert_called_once_with("Test prompt")
 
@@ -75,15 +76,12 @@ def test_clear_all_command():
 
 
 def test_add_prompt_from_clipboard():
-    with (
-        patch(
-            "crowler.cli.app._clipboard_get", return_value="Clipboard prompt"
-        ) as mock_clipboard_get,
-        patch("crowler.cli.app.append_prompt") as mock_append_prompt,
-    ):
-        # The command is 'paste' not 'clipboard'
+    # Mock both clipboard function and DB function for proper isolation
+    with patch("crowler.cli.app._clipboard_get", return_value="Clipboard prompt") as mock_clipboard_get, \
+         patch("crowler.cli.app.append_prompt") as mock_append_prompt:
+        
         result = runner.invoke(app, ["paste"])
-
+        
         assert result.exit_code == 0
         mock_clipboard_get.assert_called_once()
         mock_append_prompt.assert_called_once_with("Clipboard prompt")
@@ -95,3 +93,30 @@ def test_clipboard_get_unavailable():
         result = runner.invoke(app, ["paste"])
         assert result.exit_code == 1  # This should exit with code 1
         assert "Clipboard not available on this system" in result.stdout
+
+
+def test_copy_to_clipboard():
+    # Test the copy command
+    with patch("crowler.cli.app.summary_all", return_value="All summaries") as mock_summary_all, \
+         patch("crowler.cli.app._clipboard_set") as mock_clipboard_set:
+        
+        result = runner.invoke(app, ["copy"])
+        
+        assert result.exit_code == 0
+        mock_summary_all.assert_called_once()
+        mock_clipboard_set.assert_called_once_with("All summaries")
+
+
+def test_ask_command():
+    # Test the ask command with mocked environment variable
+    with patch("os.environ", {"AI_CLIENT": "openai"}), \
+         patch("crowler.cli.app.get_ai_client") as mock_get_client:
+        mock_client = mock_get_client.return_value
+        mock_client.send_message.return_value = "AI response"
+        
+        result = runner.invoke(app, ["ask"])
+        
+        assert result.exit_code == 0
+        mock_get_client.assert_called_once()
+        mock_client.send_message.assert_called_once()
+        assert "AI response" in result.stdout
