@@ -10,20 +10,21 @@ Command-line toolkit for managing prompts, files, and AI-powered workflows!
 
 - [crowler](#crowler)
   - [📚 Table of Contents](#-table-of-contents)
-  - [🔄 Example Workflow](#-example-workflow)
+  - [🔄 Example Workflows](#-example-workflows)
   - [🚀 Installation \& Setup](#-installation--setup)
     - [macOS: Python \& Homebrew](#macos-python--homebrew)
     - [Project Setup](#project-setup)
-    - [Self improvement loop](#self-improvement-loop)
+    - [Self-Improvement Loop](#self-improvement-loop)
   - [🔐 Environment Configuration](#-environment-configuration)
   - [🛠️ CLI Usage](#️-cli-usage)
     - [💡 Prompt Management](#-prompt-management)
     - [📁 File Management](#-file-management)
     - [⚙️ Processing Queue](#️-processing-queue)
+    - [🔗 URL Management](#-url-management)
     - [🤖 Code Generation](#-code-generation)
     - [🌎 Global Commands](#-global-commands)
 
-## 🔄 Example Workflow
+## 🔄 Example Workflows
 
 Let's say you want to generate tests for your codebase:
 
@@ -37,6 +38,13 @@ Or, to quickly create a README:
 
 ```
 crowler code readme
+```
+
+Improve logging in your codebase:
+
+```
+crowler process add src/logger.py
+crowler code typer-log
 ```
 
 ## 🚀 Installation & Setup
@@ -54,13 +62,15 @@ python3 -m pip install virtualenv
 Clone and set up your environment:
 
 ```bash
+git clone https://github.com/gardusig/crowler.git
+cd crowler
 python3 -m venv venv
 source venv/bin/activate
 python -m pip install -e .
 python -m pip install -e ".[dev]"
 ```
 
-### Self improvement loop
+### Self-Improvement Loop
 
 Check if there's any failing test:
 
@@ -80,16 +90,25 @@ python -m crowler.main code unit-test --force
 
 ## 🔐 Environment Configuration
 
-crowler uses OpenAI (or other LLM) APIs. Set your API key in a `.env` file at the project root:
+Crowler uses OpenAI (or other LLM) APIs. Set your API key in a `.env` file at the project root:
 
 ```env
 OPENAI_API_KEY=sk-...
+AI_CLIENT=openai
 ```
 
 Or export it in your shell:
 
 ```bash
 export OPENAI_API_KEY=sk-...
+export AI_CLIENT=openai
+```
+
+For AWS Bedrock (Claude):
+
+```env
+AI_CLIENT=claude
+# AWS credentials will be used from your AWS CLI configuration
 ```
 
 ## 🛠️ CLI Usage
@@ -102,7 +121,7 @@ python -m crowler [COMMANDS...]
 
 Or, if installed as a script:
 
-```bash
+```
 crowler [COMMANDS...]
 ```
 
@@ -137,7 +156,7 @@ Manage your prompt history for AI interactions:
 
 - **Add prompt from clipboard:**
   ```
-  crowler clipboard
+  crowler paste
   ```
 
 ### 📁 File Management
@@ -198,6 +217,30 @@ Queue files for processing (e.g., for test generation):
   crowler process clear
   ```
 
+### 🔗 URL Management
+
+Track URLs to use as context for your AI:
+
+- **Add a URL:**
+  ```
+  crowler url add https://example.com
+  ```
+
+- **Remove a URL:**
+  ```
+  crowler url remove https://example.com
+  ```
+
+- **List all URLs:**
+  ```
+  crowler url list
+  ```
+
+- **Parse tracked URLs:**
+  ```
+  crowler url parse
+  ```
+
 ### 🤖 Code Generation
 
 Let crowler and your LLM do the heavy lifting:
@@ -212,7 +255,21 @@ Let crowler and your LLM do the heavy lifting:
   crowler code readme
   ```
 
-  Add `--force` to overwrite existing files without confirmation.
+- **Fix mypy typing errors in your code:**
+  ```
+  crowler code mypy
+  ```
+
+- **Improve logging with typer in your code:**
+  ```
+  crowler code typer-log
+  ```
+
+Add `--force` to overwrite existing files without confirmation:
+
+```
+crowler code readme --force
+```
 
 ### 🌎 Global Commands
 
@@ -221,7 +278,17 @@ Let crowler and your LLM do the heavy lifting:
   crowler show
   ```
 
+- **Copy all context to clipboard:**
+  ```
+  crowler copy
+  ```
+
 - **Clear everything (prompts, shared files, processing files):**
   ```
   crowler clear
+  ```
+
+- **Send a direct query to the AI:**
+  ```
+  crowler ask
   ```
