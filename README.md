@@ -2,10 +2,6 @@
 
 Command-line toolkit for managing prompts, files, and AI-powered workflows!
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/gardusig/crowler/main/media/itachi.png" height="200" />
-</div>
-
 ## 📚 Table of Contents
 
 - [crowler](#crowler)
