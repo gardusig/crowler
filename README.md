@@ -56,8 +56,8 @@ Clone and set up your environment:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-python3 -m pip install -e .
-python3 -m pip install -e ".[dev]"
+python -m pip install -e .
+python -m pip install -e ".[dev]"
 ```
 
 ### Self improvement loop

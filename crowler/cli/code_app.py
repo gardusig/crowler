@@ -21,7 +21,6 @@ def create_unit_tests(
     force: bool = typer.Option(
         False,
         "--force",
-        help="Skip prompts and overwrite tests unconditionally.",
     ),
 ):
     for filepath in get_processing_files():
@@ -66,7 +65,6 @@ def create_readme(
     force: bool = typer.Option(
         False,
         "--force",
-        help="Skip prompts and overwrite tests unconditionally.",
     ),
 ):
     ai_client = get_ai_client()
@@ -94,7 +92,6 @@ def fix_mypy_errors(
     force: bool = typer.Option(
         False,
         "--force",
-        help="Skip prompts and overwrite tests unconditionally.",
     ),
 ):
     ai_client = get_ai_client()
@@ -123,7 +120,6 @@ def improve_typer_logs(
     force: bool = typer.Option(
         False,
         "--force",
-        help="Skip prompts and overwrite tests unconditionally.",
     ),
 ):
     ai_client = get_ai_client()
