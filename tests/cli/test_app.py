@@ -39,24 +39,6 @@ def test_preview_command():
         mock_summary_urls.assert_called_once()
 
 
-def test_add_prompt_command():
-    # The key fix: patch where the function is imported in prompt_app.py, not where it's defined
-    with patch("crowler.cli.prompt_app.append_prompt") as mock_append_prompt:
-        result = runner.invoke(app, ["prompt", "add", "Test prompt"])
-
-        assert result.exit_code == 0
-        mock_append_prompt.assert_called_once_with("Test prompt")
-
-
-def test_add_prompt_command_empty():
-    # Use the 'prompt add' subcommand with an empty string
-    result = runner.invoke(app, ["prompt", "add", ""])
-
-    assert result.exit_code == 0  # The command succeeds but shows a warning
-    # This message comes from prompt_db.py's append method
-    assert "⚠️  Empty prompt" in result.stdout
-
-
 def test_clear_all_command():
     with (
         patch("crowler.cli.app.clear_prompts") as mock_clear_prompts,

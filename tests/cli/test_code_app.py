@@ -143,6 +143,24 @@ def test_create_unit_test_function_skips_init_files(mock_ai_client, mock_rewrite
         assert "Skipping" in mock_secho.call_args[0][0]
 
 
+# New test for the case where AI returns files that don't match the input filepath
+def test_create_unit_test_function_no_matching_files(
+    mock_ai_client, mock_rewrite_files, mock_parse_code_response
+):
+    # Setup - The returned file doesn't match the input filepath
+    mock_ai_client.send_message.return_value = "test response"
+    mock_parse_code_response.return_value = OrderedDict(
+        [("different_file.py", "test content")]
+    )
+
+    # Call the function
+    create_unit_test(True, "test_file.py")
+
+    # Assertions - Should still make API call but not rewrite any files
+    mock_ai_client.send_message.assert_called_once()
+    mock_rewrite_files.assert_not_called()
+
+
 def test_create_readme_command(
     runner, mock_ai_client, mock_rewrite_files, mock_readme_parser
 ):
@@ -372,3 +390,56 @@ def test_improve_typer_logs_command_handles_exception(
         assert mock_secho.call_count == 2  # Once for each file
         assert "Failed to improve typer logs" in mock_secho.call_args_list[0][0][0]
         assert "Test error" in mock_secho.call_args_list[0][0][0]
+
+
+# New tests for edge cases
+
+
+def test_create_unit_tests_empty_file_list(runner, mock_ai_client, mock_rewrite_files):
+    # Setup - empty list of processing files
+    with patch("crowler.cli.code_app.get_processing_files") as mock_get_files:
+        mock_get_files.return_value = []
+
+        # Call the command
+        result = runner.invoke(code_app, ["unit-test", "--force"])
+
+        # Assertions - should not make any API calls
+        assert result.exit_code == 0
+        mock_ai_client.send_message.assert_not_called()
+        mock_rewrite_files.assert_not_called()
+
+
+def test_create_unit_test_empty_ai_response(mock_ai_client, mock_rewrite_files):
+    # Setup - empty response from AI
+    mock_ai_client.send_message.return_value = ""
+
+    with patch("crowler.cli.code_app.parse_code_response") as mock_parse:
+        mock_parse.return_value = OrderedDict()
+
+        # Call the function
+        create_unit_test(True, "test_file.py")
+
+        # Assertions - should make API call but not rewrite any files
+        mock_ai_client.send_message.assert_called_once()
+        mock_parse.assert_called_once_with(
+            response="", task_type=TaskType.TEST_GENERATION
+        )
+        mock_rewrite_files.assert_not_called()
+
+
+def test_create_unit_test_empty_parsed_response(mock_ai_client, mock_rewrite_files):
+    # Setup - AI returns content but parse returns empty dict
+    mock_ai_client.send_message.return_value = "test response"
+
+    with patch("crowler.cli.code_app.parse_code_response") as mock_parse:
+        mock_parse.return_value = OrderedDict()
+
+        # Call the function
+        create_unit_test(True, "test_file.py")
+
+        # Assertions - should make API call but not rewrite any files
+        mock_ai_client.send_message.assert_called_once()
+        mock_parse.assert_called_once_with(
+            response="test response", task_type=TaskType.TEST_GENERATION
+        )
+        mock_rewrite_files.assert_not_called()
