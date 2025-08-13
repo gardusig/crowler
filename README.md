@@ -26,7 +26,6 @@ Let's say you want to generate tests for your codebase:
 
 ```
 crowler process add src/my_module.py
-crowler prompt add "Write comprehensive unit tests."
 crowler code unit-test
 ```
 
